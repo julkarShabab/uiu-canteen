@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Registration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Registration Form</h1>
+    <form id="registerForm">
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" value="Test User" required>
+        </div>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="test2@example.com" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="password123" required>
+        </div>
+        <div class="form-group">
+            <label for="userType">User Type:</label>
+            <select id="userType">
+                <option value="customer">Customer</option>
+                <option value="restaurant">Restaurant</option>
+                <option value="delivery">Delivery</option>
+            </select>
+        </div>
+        <div class="form-group" id="restaurantNameGroup" style="display: none;">
+            <label for="restaurantName">Restaurant Name:</label>
+            <input type="text" id="restaurantName" value="Test Restaurant">
+        </div>
+        <button type="submit">Register</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        // Show/hide restaurant name field based on user type
+        document.getElementById('userType').addEventListener('change', function() {
+            const restaurantNameGroup = document.getElementById('restaurantNameGroup');
+            restaurantNameGroup.style.display = this.value === 'restaurant' ? 'block' : 'none';
+        });
+
+        // Handle form submission
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Sending request...';
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const userType = document.getElementById('userType').value;
+            const restaurantName = document.getElementById('restaurantName').value;
+
+            const userData = {
+                name,
+                email,
+                password,
+                type: userType
+            };
+
+            if (userType === 'restaurant') {
+                userData.restaurantName = restaurantName;
+            }
+
+            try {
+                console.log('Sending registration data:', userData);
+                const response = await fetch('http://localhost:5000/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+                resultDiv.textContent = 'Response:\n' + JSON.stringify(data, null, 2);
+                console.log('Registration response:', data);
+            } catch (error) {
+                resultDiv.textContent = 'Error:\n' + error.message;
+                console.error('Registration error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
