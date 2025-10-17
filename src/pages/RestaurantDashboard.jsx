@@ -253,26 +253,29 @@ const RestaurantDashboard = () => {
     }
   }
   
-  const handleSubmitItem = () => {
-    // Validate form
-    if (!newItem.name || !newItem.description || !newItem.price || !newItem.category || !newItem.image) {
+  const handleSubmitItem = async () => {
+    if (!newItem.name || !newItem.description || newItem.price === '' || !newItem.category || !newItem.image) {
       toast.error('Please fill all fields')
       return
     }
-    
-    // Convert price to number
-    const itemData = {
-      ...newItem,
-      price: parseFloat(newItem.price)
+    const priceNum = Number(newItem.price)
+    if (Number.isNaN(priceNum) || priceNum < 0) {
+      toast.error('Price must be a valid number')
+      return
     }
-    
-    if (editingItem) {
-      updateMenuItem(editingItem, itemData)
-    } else {
-      addMenuItem(itemData)
+    const itemData = { ...newItem, price: priceNum }
+
+    try {
+      if (editingItem) {
+        await updateMenuItem(editingItem, itemData)
+      } else {
+        const created = await addMenuItem(itemData)
+        if (!created) return
+      }
+      setShowItemModal(false)
+    } catch (e) {
+      // error toasts handled inside context methods
     }
-    
-    setShowItemModal(false)
   }
   
   const handleToggleAvailability = (id, currentStatus) => {

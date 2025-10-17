@@ -38,6 +38,11 @@ const socketEvents = {
   notification: (callback) => {
     socket.on('notification', callback);
   },
+
+  // Menu events
+  menuUpdated: (callback) => {
+    socket.on('menu:updated', callback);
+  },
   
   // Chat events
   chatMessage: (callback) => {

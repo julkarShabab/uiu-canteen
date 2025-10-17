@@ -16,6 +16,7 @@ import Register from './pages/Register'
 import DeliveryDashboard from './pages/DeliveryDashboard'
 import RestaurantDashboard from './pages/RestaurantDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
+import RoleRoute from './components/RoleRoute'
 
 function App() {
   return (
@@ -27,7 +28,11 @@ function App() {
             <main className="container mx-auto px-4 py-8">
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/menu" element={<Menu />} />
+                <Route path="/menu" element={
+                  <RoleRoute roles={["customer"]}>
+                    <Menu />
+                  </RoleRoute>
+                } />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
@@ -42,17 +47,17 @@ function App() {
                 <Route 
                   path="/delivery" 
                   element={
-                    <ProtectedRoute>
+                    <RoleRoute roles={["delivery"]}>
                       <DeliveryDashboard />
-                    </ProtectedRoute>
+                    </RoleRoute>
                   } 
                 />
                 <Route 
                   path="/restaurant" 
                   element={
-                    <ProtectedRoute>
+                    <RoleRoute roles={["restaurant"]}>
                       <RestaurantDashboard />
-                    </ProtectedRoute>
+                    </RoleRoute>
                   } 
                 />
               </Routes>

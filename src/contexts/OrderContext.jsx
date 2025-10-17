@@ -51,64 +51,56 @@ export const OrderProvider = ({ children }) => {
     }
   })
 
-  // Fetch menu items from server with localStorage fallback
+  // Fetch menu items from server only (no local fallback)
   const fetchMenuItems = async () => {
     try {
       setLoading(true)
       const response = await api.get('/menu')
-      const serverItems = response?.data?.menuItems
-      if (Array.isArray(serverItems) && serverItems.length > 0) {
-        setMenuItems(serverItems)
-      } else {
-        const stored = localStorage.getItem('menuItems')
-        if (stored) {
-          try {
-            setMenuItems(JSON.parse(stored))
-          } catch (_) {
-            // ignore parse errors
-          }
-        } else {
-          setMenuItems([])
-        }
-      }
+      setMenuItems(response?.data?.menuItems || [])
       setLoading(false)
     } catch (error) {
       console.error('Error fetching menu items:', error)
-      const stored = localStorage.getItem('menuItems')
-      if (stored) {
-        try { setMenuItems(JSON.parse(stored)) } catch (_) {}
-      }
+      setMenuItems([])
       setLoading(false)
     }
   }
 
   // Menu item management functions
-  const addMenuItem = (item) => {
-    const newItem = {
-      ...item,
-      id: Date.now()
+  const addMenuItem = async (item) => {
+    try {
+      const response = await api.post('/menu', item)
+      const newItem = response?.data?.item
+      if (newItem) {
+        setMenuItems(prev => [...prev, newItem])
+        toast.success('Menu item added successfully')
+        return newItem
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to add menu item')
     }
-    const next = [...menuItems, newItem]
-    setMenuItems(next)
-    localStorage.setItem('menuItems', JSON.stringify(next))
-    toast.success('Menu item added successfully')
-    return newItem
   }
 
-  const updateMenuItem = (id, updatedItem) => {
-    const updatedMenuItems = menuItems.map(item => 
-      item.id === id ? { ...item, ...updatedItem } : item
-    )
-    setMenuItems(updatedMenuItems)
-    localStorage.setItem('menuItems', JSON.stringify(updatedMenuItems))
-    toast.success('Menu item updated successfully')
+  const updateMenuItem = async (id, updatedItem) => {
+    try {
+      const response = await api.put(`/menu/${id}`, updatedItem)
+      const item = response?.data?.item
+      if (item) {
+        setMenuItems(prev => prev.map(m => m.id === id ? item : m))
+        toast.success('Menu item updated successfully')
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to update menu item')
+    }
   }
 
-  const removeMenuItem = (id) => {
-    const updatedMenuItems = menuItems.filter(item => item.id !== id)
-    setMenuItems(updatedMenuItems)
-    localStorage.setItem('menuItems', JSON.stringify(updatedMenuItems))
-    toast.success('Menu item removed successfully')
+  const removeMenuItem = async (id) => {
+    try {
+      await api.delete(`/menu/${id}`)
+      setMenuItems(prev => prev.filter(item => item.id !== id))
+      toast.success('Menu item removed successfully')
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to remove menu item')
+    }
   }
 
   // Connect to socket when user is authenticated
@@ -168,16 +160,29 @@ export const OrderProvider = ({ children }) => {
       }
     }
   }, [user?.type]);
+
+  // Poll orders periodically for restaurant to ensure UI stays in sync even if sockets fail
+  useEffect(() => {
+    if (user && user.type === 'restaurant') {
+      const id = setInterval(() => {
+        fetchAllOrders();
+      }, 3000);
+      return () => clearInterval(id);
+    }
+  }, [user?.type]);
   
   // Fetch menu items when component mounts
   useEffect(() => {
     fetchMenuItems();
   }, []);
 
-  // Persist menu items locally so they survive refreshes (no demo data added automatically)
+  // Refetch menu when server broadcasts updates
   useEffect(() => {
-    localStorage.setItem('menuItems', JSON.stringify(menuItems))
-  }, [menuItems])
+    socketEvents.menuUpdated(() => {
+      fetchMenuItems();
+    })
+  }, [])
+
 
   useEffect(() => {
     // Load cart from localStorage
@@ -307,7 +312,7 @@ export const OrderProvider = ({ children }) => {
   const fetchUserOrders = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/api/orders/myorders')
+      const response = await api.get('/orders/myorders', { params: { t: Date.now() } })
       setOrders(response?.data?.orders || [])
       setLoading(false)
       return response?.data?.orders || []
@@ -321,7 +326,7 @@ export const OrderProvider = ({ children }) => {
   const fetchAllOrders = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/orders')
+      const response = await api.get('/orders', { params: { t: Date.now() } })
       setOrders(response?.data?.orders || [])
       setLoading(false)
       return response?.data?.orders || []
