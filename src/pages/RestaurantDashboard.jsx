@@ -3,7 +3,7 @@ import { useOrder } from '../contexts/OrderContext'
 import { useDelivery } from '../contexts/DeliveryContext'
 import { Clock, Package, CheckCircle, Truck, User, Plus, Edit, Trash2, ArrowLeft, X, Upload, Check, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { toast } from 'sonner'
+import toast from 'react-hot-toast'
 import Banner from '../components/Banner'
 
 const RestaurantDashboard = () => {

@@ -113,8 +113,9 @@ const io = setupSocket(server);
 // Expose io globally for controllers to emit events
 global.io = io;
 
-// Body parser
-app.use(express.json());
+// Body parser (allow larger payloads for base64 images)
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
 // Enable CORS with specific configuration
 app.use(cors({
