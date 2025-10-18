@@ -4,16 +4,16 @@ import { useDelivery } from '../contexts/DeliveryContext'
 import { Clock, Package, CheckCircle, Truck, User, Plus, Edit, Trash2, ArrowLeft, X, Upload, Check, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import Banner from '../components/Banner'
 
 const RestaurantDashboard = () => {
-  const { orders, updateOrderStatus, assignDelivery, menuItems, addMenuItem, updateMenuItem, removeMenuItem } = useOrder()
+  const { orders, updateOrderStatus, assignDelivery, fetchAllOrders, menuItems, addMenuItem, updateMenuItem, removeMenuItem } = useOrder()
   const { deliveryPersonnel } = useDelivery()
   
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [restaurantOrders, setRestaurantOrders] = useState([])
   const [editingItem, setEditingItem] = useState(null)
   const [showItemModal, setShowItemModal] = useState(false)
+  // Fallback alias to avoid undefined references from earlier code
+  const restaurantOrders = orders || []
   const [newItem, setNewItem] = useState({
     name: '',
     description: '',
@@ -24,53 +24,12 @@ const RestaurantDashboard = () => {
   })
   const fileInputRef = useRef(null)
   
-  // Load restaurant orders from localStorage or directly from orders prop
+  // Poll orders directly for the restaurant page (independent of sockets)
   useEffect(() => {
-    try {
-      // Force refresh from both sources to ensure we have the latest data
-      const storedOrders = localStorage.getItem('restaurantOrders')
-      const parsedStoredOrders = storedOrders ? JSON.parse(storedOrders) : []
-      
-      // Combine orders from context and localStorage, removing duplicates
-      const combinedOrders = [...(orders || []), ...parsedStoredOrders]
-      const uniqueOrders = Array.from(new Map(combinedOrders.map(order => [order.id, order])).values())
-      
-      setRestaurantOrders(uniqueOrders)
-      // Update localStorage for persistence
-      localStorage.setItem('restaurantOrders', JSON.stringify(uniqueOrders))
-      
-      // Debug notification to confirm orders are loaded
-      if (uniqueOrders.length > 0) {
-        toast.success(`Loaded ${uniqueOrders.length} orders`)
-      }
-    } catch (error) {
-      console.error('Error loading restaurant orders:', error)
-      toast.error('Error loading orders. Please refresh the page.')
-    }
-    
-    // Set up interval to check for new orders every 2 seconds
-    const intervalId = setInterval(() => {
-      try {
-        // Force refresh from both sources to ensure we have the latest data
-        const storedOrders = localStorage.getItem('restaurantOrders')
-        const parsedStoredOrders = storedOrders ? JSON.parse(storedOrders) : []
-        
-        // Combine orders from context and localStorage, removing duplicates
-        const combinedOrders = [...(orders || []), ...parsedStoredOrders]
-        const uniqueOrders = Array.from(new Map(combinedOrders.map(order => [order.id, order])).values())
-        
-        // Only update if there are changes
-        if (JSON.stringify(uniqueOrders) !== JSON.stringify(restaurantOrders)) {
-          setRestaurantOrders(uniqueOrders)
-          localStorage.setItem('restaurantOrders', JSON.stringify(uniqueOrders))
-        }
-      } catch (error) {
-        console.error('Error checking for new orders:', error)
-      }
-    }, 2000) // Check every 2 seconds
-    
-    return () => clearInterval(intervalId)
-  }, [])
+    fetchAllOrders()
+    const id = setInterval(() => fetchAllOrders(), 3000)
+    return () => clearInterval(id)
+  }, [fetchAllOrders])
   
   // Function to accept an order from a customer
   const handleAcceptOrder = (order) => {
@@ -185,12 +144,6 @@ const RestaurantDashboard = () => {
     ? orders 
     : orders.filter(order => order.status === selectedStatus)
 
-  // New orders from customers waiting for restaurant acceptance
-  const newCustomerOrders = restaurantOrders.filter(order => order.status === 'pending_restaurant')
-  
-  // Orders accepted by restaurant but not yet assigned to delivery
-  const pendingOrders = restaurantOrders.filter(order => order.status === 'pending')
-  
   const activeOrders = orders.filter(order => 
     ['assigned', 'picked_up', 'in_transit'].includes(order.status)
   )
@@ -350,6 +303,12 @@ const RestaurantDashboard = () => {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-gray-900">Orders</h2>
             <div className="flex space-x-2">
+              <button
+                onClick={() => { fetchAllOrders(); toast.success('Orders refreshed') }}
+                className="btn-secondary"
+              >
+                Refresh Orders
+              </button>
               {['all', 'pending', 'assigned', 'picked_up', 'in_transit', 'delivered'].map(status => (
                 <button
                   key={status}

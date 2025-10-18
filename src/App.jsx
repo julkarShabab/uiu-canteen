@@ -14,7 +14,8 @@ import Orders from './pages/Orders'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import DeliveryDashboard from './pages/DeliveryDashboard'
-import RestaurantDashboard from './pages/RestaurantDashboard'
+import RestaurantDashboard from './pages/RestaurantOrdersLite'
+import RestaurantMenu from './pages/RestaurantMenuLite'
 import ProtectedRoute from './components/ProtectedRoute'
 import RoleRoute from './components/RoleRoute'
 
@@ -57,6 +58,14 @@ function App() {
                   element={
                     <RoleRoute roles={["restaurant"]}>
                       <RestaurantDashboard />
+                    </RoleRoute>
+                  } 
+                />
+                <Route 
+                  path="/restaurant/menu" 
+                  element={
+                    <RoleRoute roles={["restaurant"]}>
+                      <RestaurantMenu />
                     </RoleRoute>
                   } 
                 />
